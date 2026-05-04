@@ -1,0 +1,18 @@
+[project]
+name = "garuda"
+version = "0.1.0"
+description = "LLM inference engine from scratch: paged KV cache, continuous batching, chunked prefill, prefix caching, async SSE serving"
+requires-python = ">=3.11"
+dependencies = [
+    "torch",
+    "safetensors",
+    "transformers",  # tokenizer + weight download + parity testing only
+    "fastapi",
+    "uvicorn",
+    "httpx",
+    "numpy",
+    "matplotlib",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
