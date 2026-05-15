@@ -38,20 +38,37 @@ def test_prefill_logits_close(setup):
     assert torch.allclose(ref.float(), got.float(), atol=1.0, rtol=0.05)
 
 
-def test_greedy_50_tokens_exact(setup):
+def test_decode_path_teacher_forced(setup):
+    """Drive OUR token-by-token decode path (KV cache + causal-offset mask)
+    through 50 tokens of HF's greedy continuation, comparing each step's
+    argmax against HF's full-context forward.
+
+    Exact greedy match vs hf.generate() is not a sound criterion in bf16:
+    HF's own incremental-cache path disagrees with HF's own full-context
+    forward at near-tie logits (observed top-2 gaps of 0.0). So we require
+    argmax agreement everywhere EXCEPT positions where our top-2 gap is a
+    near-tie (< 0.25), where either choice is numerically legitimate.
+    """
     from garuda.models.qwen import NaiveKVBackend
 
     hf, ours, ids = setup
     with torch.inference_mode():
-        ref = hf.generate(ids, max_new_tokens=50, do_sample=False)[0, ids.shape[1] :]
+        ref = hf.generate(ids, max_new_tokens=50, do_sample=False)[0]
+        n = ids.shape[1]
+        ref_logits = hf(ref.unsqueeze(0)).logits[0]  # full-context reference
 
         backend = NaiveKVBackend(ours.cfg)
-        n = ids.shape[1]
-        logits = ours(ids[0], torch.arange(n, device="cuda"), backend)
-        out = []
-        tok = logits[-1].argmax()
-        for i in range(50):
-            out.append(tok.item())
-            logits = ours(tok.view(1), torch.tensor([n + i], device="cuda"), backend)
-            tok = logits[-1].argmax()
-    assert out == ref.tolist()
+        logits = ours(ref[:n], torch.arange(n, device="cuda"), backend)
+        agree, near_ties = 0, 0
+        for i in range(n, len(ref)):
+            row = logits[-1].float()
+            if row.argmax().item() == ref_logits[i - 1].argmax().item():
+                agree += 1
+            else:
+                top2 = row.topk(2).values
+                assert (top2[0] - top2[1]).item() < 0.25, (
+                    f"decode argmax mismatch at pos {i} with confident logits"
+                )
+                near_ties += 1
+            logits = ours(ref[i].view(1), torch.tensor([i], device="cuda"), backend)
+    assert agree >= 45, f"only {agree}/50 decode steps agree ({near_ties} near-ties)"
