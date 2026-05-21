@@ -62,7 +62,7 @@ class LLMEngine:
                 token_ids = self.tokenizer.apply_chat_template(
                     [{"role": "user", "content": prompt}],
                     add_generation_prompt=True,
-                )
+                )["input_ids"]
             else:
                 token_ids = self.tokenizer(prompt).input_ids
         else:

@@ -46,19 +46,55 @@ def naive_greedy(engine, token_ids: list[int], max_new: int) -> list[int]:
 
 
 def test_engine_matches_naive(engine):
+    """Free-run the engine (mixed chunked-prefill/decode batches), then
+    teacher-force the naive cache over each (prompt + output) sequence:
+    every engine-chosen token must be the naive argmax, except where the
+    naive top-2 gap is within bf16 kernel noise (exact greedy match is not
+    well-defined at near-ties — see test_parity for the same phenomenon).
+    A real paging bug (wrong slot, stale block, bad mask) breaks agreement
+    at confident positions immediately.
+    """
+    import torch
+
     from garuda.engine.request import SamplingParams
+    from garuda.models.qwen import NaiveKVBackend
 
     params = SamplingParams(max_new_tokens=48, temperature=0.0)
     tokenized = [
         engine.tokenizer.apply_chat_template(
             [{"role": "user", "content": p}], add_generation_prompt=True
-        )
+        )["input_ids"]
         for p in PROMPTS
     ]
     got = engine.generate(tokenized, params, chat=False)
+    total, agreed = 0, 0
     for prompt_ids, engine_out in zip(tokenized, got):
-        ref = naive_greedy(engine, prompt_ids, 48)
-        assert engine_out == ref
+        assert len(engine_out) > 0
+        backend = NaiveKVBackend(engine.model.cfg)
+        seq = prompt_ids + engine_out
+        n = len(prompt_ids)
+        with torch.inference_mode():
+            logits = engine.model(
+                torch.tensor(seq[:n], device="cuda"),
+                torch.arange(n, device="cuda"), backend,
+            )
+            for i, tok in enumerate(engine_out):
+                row = logits[-1].float()
+                total += 1
+                if row.argmax().item() == tok:
+                    agreed += 1
+                else:
+                    top2 = row.topk(2).values
+                    assert (top2[0] - top2[1]).item() < 0.75, (
+                        f"engine token {tok} at step {i} disagrees with naive "
+                        f"argmax at a confident position"
+                    )
+                if i < len(engine_out) - 1:
+                    logits = engine.model(
+                        torch.tensor([tok], device="cuda"),
+                        torch.tensor([n + i], device="cuda"), backend,
+                    )
+    assert agreed / total > 0.9, f"only {agreed}/{total} tokens agree"
 
 
 def test_all_blocks_freed(engine):
