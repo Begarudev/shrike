@@ -164,9 +164,17 @@ class QwenForCausalLM(nn.Module):
         self.lm_head = nn.Linear(cfg.hidden_size, cfg.vocab_size, bias=False)
         self.rotary = RotaryEmbedding(cfg.head_dim, cfg.rope_theta, device)
 
-    def forward(self, input_ids: torch.Tensor, positions: torch.Tensor, backend: AttentionBackend) -> torch.Tensor:
+    def forward(
+        self,
+        input_ids: torch.Tensor,
+        positions: torch.Tensor,
+        backend: AttentionBackend,
+        out_rows: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         cos, sin = self.rotary(positions)
         hidden = self.model(input_ids, cos, sin, backend)
+        if out_rows is not None:  # skip lm_head for rows nobody samples from
+            hidden = hidden[out_rows]
         return self.lm_head(hidden)
 
     @classmethod

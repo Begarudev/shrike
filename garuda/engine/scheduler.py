@@ -20,6 +20,7 @@ from collections import deque
 
 from garuda.engine.block_manager import BlockManager
 from garuda.engine.request import Request, Status
+from garuda.engine.spec_ngram import propose
 
 
 class Scheduler:
@@ -28,10 +29,14 @@ class Scheduler:
         block_manager: BlockManager,
         max_tokens_per_step: int = 512,
         max_running: int = 256,
+        spec_ngram: int = 0,  # n-gram size for prompt-lookup speculation, 0 = off
+        spec_k: int = 4,  # max draft tokens per step
     ):
         self.bm = block_manager
         self.max_tokens_per_step = max_tokens_per_step
         self.max_running = max_running
+        self.spec_ngram = spec_ngram
+        self.spec_k = spec_k
         self.waiting: deque[Request] = deque()
         self.running: list[Request] = []
         self.num_preemptions = 0
@@ -49,10 +54,17 @@ class Scheduler:
         victim = self.running.pop()
         self.num_preemptions += 1
         self.bm.free(victim)
+        self._drop_drafts(victim)
         victim.num_computed_tokens = 0
         victim.status = Status.WAITING
         self.waiting.appendleft(victim)
         return victim is not req
+
+    @staticmethod
+    def _drop_drafts(req: Request) -> None:
+        if req.spec_len:
+            del req.token_ids[-req.spec_len :]
+            req.spec_len = 0
 
     def schedule(self) -> list[tuple[Request, int]]:
         batch: list[tuple[Request, int]] = []
@@ -65,14 +77,22 @@ class Scheduler:
                 break
             if req.status is not Status.RUNNING:  # preempted earlier this step
                 continue
-            n_new = 1 if req.prefill_done else min(
-                req.num_prompt_tokens - req.num_computed_tokens, budget
-            )
+            if req.prefill_done:
+                n_new = 1
+                if self.spec_ngram and req.sampling.temperature == 0.0 and budget > 1:
+                    drafts = propose(req.token_ids, self.spec_ngram, self.spec_k)
+                    req.spec_len = min(len(drafts), budget - 1)
+                    if req.spec_len:
+                        req.token_ids.extend(drafts[: req.spec_len])
+                        n_new = 1 + req.spec_len
+            else:
+                n_new = min(req.num_prompt_tokens - req.num_computed_tokens, budget)
             while not self.bm.can_append(req, n_new):
                 if not self._preempt_for(req):
                     n_new = 0
                     break
             if n_new == 0:
+                self._drop_drafts(req)
                 continue
             self.bm.append_blocks(req, n_new)
             (batch if n_new == 1 else prefill_batch).append((req, n_new))
@@ -97,10 +117,14 @@ class Scheduler:
 
         return batch + prefill_batch  # decodes first (ModelRunner convention)
 
-    def postprocess(self, batch: list[tuple[Request, int]]) -> None:
-        """Advance computed-token counts; register full blocks for prefix cache."""
+    def postprocess(
+        self, batch: list[tuple[Request, int]], advances: dict[int, int] | None = None
+    ) -> None:
+        """Advance computed-token counts (speculative requests advance by
+        their verified length, not the scheduled draft length); register
+        full blocks for prefix cache."""
         for req, n_new in batch:
-            req.num_computed_tokens += n_new
+            req.num_computed_tokens += (advances or {}).get(req.req_id, n_new)
             self.bm.register_full_blocks(req)
 
     def finish(self, req: Request, reason: str) -> None:

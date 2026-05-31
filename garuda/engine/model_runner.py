@@ -99,19 +99,23 @@ class ModelRunner:
         return torch.tensor([], dtype=self.cfg.dtype).element_size()
 
     @torch.inference_mode()
-    def run(self, batch: list[tuple[Request, int]]) -> tuple[torch.Tensor, list[Request]]:
+    def run(
+        self, batch: list[tuple[Request, int]]
+    ) -> tuple[torch.Tensor, list[tuple[Request, int, int]]]:
         """Execute one step. batch = [(req, num_new_tokens)], decodes first.
 
-        Returns (logits [num_sampling_seqs, vocab], sampling_reqs) — logits of
-        the last computed token for every request that finished its prompt
-        this step (all decodes + final prefill chunks).
+        Returns (logits, spans). Logits are computed only for rows that get
+        sampled/verified; spans = [(req, offset, n_rows)] indexes into them.
+        Normal requests contribute 1 row (their last computed token);
+        speculative requests contribute their whole chunk so every draft
+        position can be verified.
         """
         device = "cuda"
         input_ids: list[int] = []
         positions: list[int] = []
         slots: list[int] = []
         sample_rows: list[int] = []
-        sample_reqs: list[Request] = []
+        spans: list[tuple[Request, int, int]] = []
 
         decode_tables, decode_ctx = [], []
         prefill_meta: list[tuple[int, int, int, torch.Tensor]] = []
@@ -135,8 +139,12 @@ class ModelRunner:
             else:
                 prefill_meta.append((q_start, n_new, ctx_len, table))
             if ctx_len >= req.num_tokens:  # computed through last token -> sample
-                sample_rows.append(q_start + n_new - 1)
-                sample_reqs.append(req)
+                if req.spec_len > 0:  # verify every draft position
+                    spans.append((req, len(sample_rows), n_new))
+                    sample_rows.extend(range(q_start, q_start + n_new))
+                else:
+                    spans.append((req, len(sample_rows), 1))
+                    sample_rows.append(q_start + n_new - 1)
 
         meta = BatchMeta(
             slot_mapping=torch.tensor(slots, dtype=torch.long, device=device),
@@ -155,5 +163,6 @@ class ModelRunner:
             torch.tensor(input_ids, dtype=torch.long, device=device),
             torch.tensor(positions, dtype=torch.long, device=device),
             self.backend,
+            out_rows=torch.tensor(sample_rows, dtype=torch.long, device=device),
         )
-        return logits[sample_rows], sample_reqs
+        return logits, spans

@@ -34,6 +34,7 @@ class Request:
     num_computed_tokens: int = 0  # tokens whose KV lives in the cache
     block_table: list[int] = field(default_factory=list)
     finish_reason: str | None = None
+    spec_len: int = 0  # tentative (unverified) draft tokens at the tail of token_ids
 
     def __post_init__(self):
         self.num_prompt_tokens = len(self.token_ids)

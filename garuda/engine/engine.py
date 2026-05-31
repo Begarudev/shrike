@@ -32,6 +32,8 @@ class StepOutput:
 class EngineStats:
     steps: int = 0
     tokens_generated: int = 0
+    spec_drafted: int = 0
+    spec_accepted: int = 0
     started_at: float = field(default_factory=time.perf_counter)
 
 
@@ -44,6 +46,8 @@ class LLMEngine:
         max_tokens_per_step: int = 512,
         max_running: int = 256,
         enable_prefix_caching: bool = True,
+        spec_ngram: int = 0,
+        spec_k: int = 4,
     ):
         self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
         self.model = QwenForCausalLM.load(model_dir)
@@ -51,7 +55,9 @@ class LLMEngine:
         self.block_manager = BlockManager(
             self.runner.num_blocks, block_size, enable_prefix_caching
         )
-        self.scheduler = Scheduler(self.block_manager, max_tokens_per_step, max_running)
+        self.scheduler = Scheduler(
+            self.block_manager, max_tokens_per_step, max_running, spec_ngram, spec_k
+        )
         self.eos_ids = set(self.model.cfg.eos_token_ids)
         self.requests: dict[int, Request] = {}
         self.stats = EngineStats()
@@ -80,29 +86,68 @@ class LLMEngine:
         batch = self.scheduler.schedule()
         if not batch:
             return []
-        logits, sample_reqs = self.runner.run(batch)
-        self.scheduler.postprocess(batch)
+        logits, spans = self.runner.run(batch)
+        advances: dict[int, int] = {}
+        emit: list[tuple[Request, list[int]]] = []  # newly committed tokens per req
+
+        singles = [(req, off) for req, off, n in spans if n == 1]
+        if singles:
+            rows = logits[[off for _, off in singles]]
+            for (req, _), token in zip(singles, sample(rows, [r for r, _ in singles])):
+                req.token_ids.append(token)
+                emit.append((req, [token]))
+
+        for req, off, n in spans:  # speculative chunks: verify drafts greedily
+            if n == 1:
+                continue
+            k = req.spec_len
+            preds = logits[off : off + n].argmax(-1).tolist()  # n == k + 1 rows
+            committed = req.num_tokens - k
+            drafts = req.token_ids[committed:]
+            accepted = 0
+            while accepted < k and drafts[accepted] == preds[accepted]:
+                accepted += 1
+            del req.token_ids[committed + accepted :]
+            req.token_ids.append(preds[accepted])  # bonus token: free correction
+            req.spec_len = 0
+            advances[req.req_id] = 1 + accepted
+            self.stats.spec_drafted += k
+            self.stats.spec_accepted += accepted
+            emit.append((req, req.token_ids[committed:]))
+
+        # postprocess BEFORE finishing: finish() frees block tables, and
+        # register_full_blocks must see the request's final token state
+        self.scheduler.postprocess(batch, advances)
+
         outputs: list[StepOutput] = []
-        for req, token in zip(sample_reqs, sample(logits, sample_reqs)):
-            req.token_ids.append(token)
-            self.stats.tokens_generated += 1
-            finished, reason = False, None
-            if token in self.eos_ids and not req.sampling.ignore_eos:
-                finished, reason = True, "stop"
-            elif req.num_generated >= req.sampling.max_new_tokens:
-                finished, reason = True, "length"
-            if finished:
-                self.scheduler.finish(req, reason)
-                del self.requests[req.req_id]
-            outputs.append(StepOutput(req.req_id, token, finished, reason))
+        for req, tokens in emit:
+            base_generated = req.num_generated - len(tokens)
+            for i, token in enumerate(tokens):
+                self.stats.tokens_generated += 1
+                finished, reason = False, None
+                if token in self.eos_ids and not req.sampling.ignore_eos:
+                    finished, reason = True, "stop"
+                elif base_generated + i + 1 >= req.sampling.max_new_tokens:
+                    finished, reason = True, "length"
+                outputs.append(StepOutput(req.req_id, token, finished, reason))
+                if finished:
+                    del req.token_ids[req.num_prompt_tokens + base_generated + i + 1 :]
+                    self.scheduler.finish(req, reason)
+                    del self.requests[req.req_id]
+                    break
         self.stats.steps += 1
         return outputs
 
     def generate(
-        self, prompts: list[str | list[int]], sampling: SamplingParams, chat: bool = True
+        self,
+        prompts: list[str | list[int]],
+        sampling: SamplingParams | list[SamplingParams],
+        chat: bool = True,
     ) -> list[list[int]]:
         """Offline batch API for benchmarks: returns generated token ids per prompt."""
-        id_map = {self.add_request(p, sampling, chat): i for i, p in enumerate(prompts)}
+        if isinstance(sampling, SamplingParams):
+            sampling = [sampling] * len(prompts)
+        id_map = {self.add_request(p, s, chat): i for i, (p, s) in enumerate(zip(prompts, sampling))}
         results: list[list[int]] = [[] for _ in prompts]
         while self.has_work:
             for out in self.step():
@@ -123,5 +168,10 @@ class LLMEngine:
             "preemptions": sched.num_preemptions,
             "prefix_cache_hit_rate": round(
                 bm.cache_hit_blocks / max(1, bm.cache_query_blocks), 3
+            ),
+            "spec_drafted": self.stats.spec_drafted,
+            "spec_accepted": self.stats.spec_accepted,
+            "spec_acceptance_rate": round(
+                self.stats.spec_accepted / max(1, self.stats.spec_drafted), 3
             ),
         }
