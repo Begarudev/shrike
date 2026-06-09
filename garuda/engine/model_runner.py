@@ -60,15 +60,25 @@ class PagedKVBackend:
 
         n_dec = meta.num_decode_seqs
         if n_dec:
-            # [B, max_b, bs, H_kv, D] -> [B, H_kv, S, D]
-            kg = k_blocks[meta.decode_block_tables].flatten(1, 2).transpose(1, 2)
-            vg = v_blocks[meta.decode_block_tables].flatten(1, 2).transpose(1, 2)
-            qd = q[:n_dec].unsqueeze(2)  # [B, H, 1, D]
-            mask = (
-                torch.arange(kg.shape[2], device=q.device)[None, :] < meta.decode_ctx_lens[:, None]
-            )[:, None, None, :]
-            attn = F.scaled_dot_product_attention(qd, kg, vg, attn_mask=mask, enable_gqa=True)
-            out[:n_dec] = attn.squeeze(2)
+            # Chunk the gather and sort by context length: gathering all
+            # sequences padded to the global max context allocates ~GBs of
+            # transients at high concurrency and stalls the CUDA allocator
+            # on a 4GB card. Sorted chunks keep padding tight and transients
+            # bounded regardless of batch size.
+            order = torch.argsort(meta.decode_ctx_lens)
+            for chunk in torch.split(order, 64):
+                ctx = meta.decode_ctx_lens[chunk]
+                max_blocks = -(-int(ctx.max()) // bs)
+                tables = meta.decode_block_tables[chunk, :max_blocks]
+                # [b, max_blocks, bs, H_kv, D] -> [b, H_kv, S, D]
+                kg = k_blocks[tables].flatten(1, 2).transpose(1, 2)
+                vg = v_blocks[tables].flatten(1, 2).transpose(1, 2)
+                qd = q[chunk].unsqueeze(2)  # [b, H, 1, D]
+                mask = (
+                    torch.arange(kg.shape[2], device=q.device)[None, :] < ctx[:, None]
+                )[:, None, None, :]
+                attn = F.scaled_dot_product_attention(qd, kg, vg, attn_mask=mask, enable_gqa=True)
+                out[chunk] = attn.squeeze(2)
 
         for q_start, q_len, ctx_len, block_table in meta.prefill:
             kg = k_blocks[block_table].flatten(0, 1)[:ctx_len].transpose(0, 1)[None]  # [1,H_kv,C,D]
@@ -83,7 +93,7 @@ class PagedKVBackend:
 
 
 class ModelRunner:
-    def __init__(self, model: QwenForCausalLM, block_size: int, gpu_mem_util: float = 0.9):
+    def __init__(self, model: QwenForCausalLM, block_size: int, gpu_mem_util: float = 0.85):
         self.model = model
         self.cfg = model.cfg
         self.block_size = block_size

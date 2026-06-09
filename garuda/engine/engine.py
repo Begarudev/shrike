@@ -42,7 +42,7 @@ class LLMEngine:
         self,
         model_dir: str,
         block_size: int = 16,
-        gpu_mem_util: float = 0.9,
+        gpu_mem_util: float = 0.85,
         max_tokens_per_step: int = 512,
         max_running: int = 256,
         enable_prefix_caching: bool = True,
