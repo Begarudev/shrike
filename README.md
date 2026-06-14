@@ -17,16 +17,44 @@ point: paging matters most when VRAM is scarce.
 
 ## Results
 
-<!-- BENCH:START — filled by bench/plots.py output -->
+All rungs run the same seeded variable-length workload (32–256 output tokens
+per request, greedy, HF transformers bf16 as the baseline implementation):
+
 | Rung | Configuration | tok/s | vs rung 1 |
 |---|---|---|---|
-| 1 | no KV cache, batch=1 | TBD | 1x |
-| 2 | KV cache, batch=1 | TBD | TBD |
-| 3 | static batching | TBD | TBD |
-| 4 | **garuda** (paged KV + continuous batching + chunked prefill) | TBD | **TBD** |
+| 1 | HF, no KV cache, batch=1 (full-prefix recompute) | 43.0 | 1× |
+| 2 | HF, KV cache, batch=1 | 68.1 | 1.6× |
+| 3 | HF, static batching (64 reqs, padded to longest) | 831.0 useful (1477 raw) | 19.3× |
+| 4 | **garuda** (paged KV + continuous batching + chunked prefill) | **818.5** | **19.0×** |
 
-Load test: 512 concurrent streaming requests — TTFT p50/p99 TBD, inter-token p99 TBD.
-<!-- BENCH:END -->
+Two honest observations, because benchmarks that only flatter are worthless:
+
+- **Static batching ties the engine (±1.5%) on this workload** — all 64
+  requests fit in one batch, which is static batching's best case. Its raw
+  throughput (1477 tok/s) is 44% padding waste decoding rows that already
+  hit their target length; continuous batching backfills that waste, which
+  is why the *useful* numbers converge. The engine's win is everything
+  static batching cannot do at all: requests arriving over time, streaming,
+  per-request lengths, admission control.
+- **The ~19× is against a recompute-everything baseline** on short-ish
+  generations; it grows with sequence length (the recompute cost is
+  quadratic). The vLLM-comparable number is rung 4 vs rung 2: **~12×**.
+
+**Load test** — 512 concurrent streaming HTTP clients, single burst, 64
+tokens each, `max_running=256`:
+
+| metric | value |
+|---|---|
+| success | 512/512, 0 failures, 0 preemptions |
+| aggregate throughput | **1302 tok/s** (25.2s wall) |
+| TTFT | p50 7.8s · p99 15.0s (burst queueing behind admission control) |
+| inter-token latency | p50 162ms · p99 613ms |
+| prefix cache hit rate | 95.5% (shared chat-template preamble) |
+
+**Speculative decoding** (`spec_ngram=2`): on repetition-friendly output
+(echo/summarize/extract), 26 → 140 tok/s single-stream (**5.4×**) with 100%
+draft acceptance and provably identical outputs; on non-repetitive text it
+degrades gracefully toward baseline.
 
 ![throughput ladder](bench/results/throughput_ladder.png)
 ![latency CDF](bench/results/latency_cdf.png)
