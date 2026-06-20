@@ -62,7 +62,10 @@ async def completions(req: CompletionRequest):
         top_p=req.top_p,
         ignore_eos=req.ignore_eos,
     )
-    req_id, queue = await async_engine.submit(req.prompt, params)
+    try:
+        req_id, queue = await async_engine.submit(req.prompt, params)
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=422)
 
     if req.stream:
         async def sse():

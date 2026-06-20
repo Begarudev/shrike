@@ -108,10 +108,13 @@ class BlockManager:
                 block.hash = prev_hash
                 self.hash_to_block.setdefault(prev_hash, block.block_id)
 
-    def free(self, req: Request) -> None:
-        for block_id in req.block_table:
+    def release(self, block_ids: list[int]) -> None:
+        for block_id in block_ids:
             block = self.blocks[block_id]
             block.ref_count -= 1
             if block.ref_count == 0:
                 self.free_queue.append(block_id)  # keep hash: still cache-hittable
+
+    def free(self, req: Request) -> None:
+        self.release(req.block_table)
         req.block_table = []

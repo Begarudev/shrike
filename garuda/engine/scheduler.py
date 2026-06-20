@@ -79,7 +79,12 @@ class Scheduler:
                 continue
             if req.prefill_done:
                 n_new = 1
-                if self.spec_ngram and req.sampling.temperature == 0.0 and budget > 1:
+                # propose drafts only when fully caught up (a resumed
+                # preempted request first re-decodes its generated history
+                # one token per step; speculating there would advance
+                # unverified tokens — no verification span gets produced)
+                caught_up = req.num_computed_tokens == req.num_tokens - 1
+                if self.spec_ngram and caught_up and req.sampling.temperature == 0.0 and budget > 1:
                     drafts = propose(req.token_ids, self.spec_ngram, self.spec_k)
                     req.spec_len = min(len(drafts), budget - 1)
                     if req.spec_len:
@@ -88,11 +93,14 @@ class Scheduler:
             else:
                 n_new = min(req.num_prompt_tokens - req.num_computed_tokens, budget)
             while not self.bm.can_append(req, n_new):
+                if req.spec_len:  # drafts are optional: drop them before
+                    self._drop_drafts(req)  # preempting anyone (incl. self)
+                    n_new = 1
+                    continue
                 if not self._preempt_for(req):
                     n_new = 0
                     break
             if n_new == 0:
-                self._drop_drafts(req)
                 continue
             self.bm.append_blocks(req, n_new)
             (batch if n_new == 1 else prefill_batch).append((req, n_new))
@@ -107,6 +115,10 @@ class Scheduler:
                 req.num_computed_tokens = cached_tokens
             n_new = min(req.num_prompt_tokens - req.num_computed_tokens, budget)
             if not self.bm.can_append(req, n_new):
+                if req.block_table:  # roll back revived prefix-cache refs so
+                    self.bm.release(req.block_table)  # they don't stay pinned
+                    req.block_table = []
+                    req.num_computed_tokens = 0
                 break  # FCFS: don't skip ahead of the head request
             self.waiting.popleft()
             self.bm.append_blocks(req, n_new)

@@ -73,6 +73,15 @@ class LLMEngine:
                 token_ids = self.tokenizer(prompt).input_ids
         else:
             token_ids = list(prompt)
+        if not token_ids:
+            raise ValueError("empty prompt")
+        bs = self.block_manager.block_size
+        worst_case_blocks = -(-(len(token_ids) + sampling.max_new_tokens) // bs)
+        if worst_case_blocks > self.block_manager.num_blocks:
+            raise ValueError(
+                f"request needs up to {worst_case_blocks} KV blocks but the pool "
+                f"has {self.block_manager.num_blocks}; it could never be scheduled"
+            )
         req = Request(token_ids=token_ids, sampling=sampling)
         self.requests[req.req_id] = req
         self.scheduler.add(req)
