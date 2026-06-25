@@ -2,5 +2,5 @@
 __pycache__/
 *.pyc
 models_cache/
-bench/results/
 .pytest_cache/
+bench/results/load_test.json
