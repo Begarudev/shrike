@@ -108,3 +108,9 @@ curl -N localhost:8000/v1/completions -H 'content-type: application/json' \
 
 Benchmarks: `python -m bench.baselines --rung 1|2|3`, `python -m bench.bench_engine`,
 `python -m bench.load_gen --concurrency 512`, `python -m bench.plots`.
+
+## Interactive CLI
+
+Run `python -m garuda.cli --model models_cache/qwen2.5-0.5b-instruct`.
+Type `/help` in the REPL to see the available commands.
+It streams multi-turn chat with sampling controls, metrics, prefix caching, and speculation.
