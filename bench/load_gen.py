@@ -144,7 +144,7 @@ async def _run_load_test(args: argparse.Namespace) -> tuple[dict[str, Any], int]
                     endpoint,
                     semaphore,
                     request_index,
-                    PROMPTS[request_index % len(PROMPTS)],
+                    _make_prompt(request_index, args.long_every, args.long_repeats),
                 )
             )
             for request_index in range(args.num_requests)
@@ -198,12 +198,28 @@ async def _run_load_test(args: argparse.Namespace) -> tuple[dict[str, Any], int]
         "failure_details": failure_details,
     }
 
-    RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with RESULTS_PATH.open("w", encoding="utf-8") as result_file:
+    results_path = Path(args.out) if args.out else RESULTS_PATH
+    results_path.parent.mkdir(parents=True, exist_ok=True)
+    with results_path.open("w", encoding="utf-8") as result_file:
         json.dump(report, result_file, indent=2)
         result_file.write("\n")
     print(json.dumps(summary, indent=2))
     return report, failures
+
+
+_LONG_FILLER = (
+    "Background context, part of a long document under discussion: the paged "
+    "key-value cache divides GPU memory into fixed-size blocks, the scheduler "
+    "assigns blocks to sequences on demand, and freed blocks return to a pool "
+    "where content hashes make them reusable by later requests. "
+)
+
+
+def _make_prompt(request_index: int, long_every: int, long_repeats: int) -> str:
+    base = PROMPTS[request_index % len(PROMPTS)]
+    if long_every and request_index % long_every == 0:
+        return _LONG_FILLER * long_repeats + base
+    return base
 
 
 def _parse_args() -> argparse.Namespace:
@@ -211,6 +227,20 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--concurrency", type=_positive_int, default=512)
     parser.add_argument("--num-requests", type=_positive_int, default=512)
     parser.add_argument("--url", default="http://127.0.0.1:8000")
+    parser.add_argument(
+        "--long-every",
+        type=int,
+        default=0,
+        help="every Nth request gets a long prompt (0 = off); used to measure "
+        "how chunked prefill protects inter-token latency",
+    )
+    parser.add_argument(
+        "--long-repeats",
+        type=int,
+        default=40,
+        help="filler paragraph repeats for long prompts (~40 tokens each)",
+    )
+    parser.add_argument("--out", default=None, help="results path override")
     return parser.parse_args()
 
 

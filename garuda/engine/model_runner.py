@@ -66,29 +66,59 @@ class PagedKVBackend:
             # on a 4GB card. Sorted chunks keep padding tight and transients
             # bounded regardless of batch size.
             order = torch.argsort(meta.decode_ctx_lens)
-            for chunk in torch.split(order, 64):
+            ctx_sorted = meta.decode_ctx_lens[order].tolist()
+            # Chunk boundaries budgeted by padded token-slots, not sequence
+            # count: the masked-SDPA math fallback materializes tensors
+            # proportional to chunk_size * padded_ctx, which OOMs a 4GB card
+            # at long contexts if the chunk is a fixed 64 sequences.
+            chunks = []
+            i = 0
+            while i < len(ctx_sorted):
+                n = 1
+                while (
+                    i + n < len(ctx_sorted)
+                    and n < 64
+                    and (n + 1) * ctx_sorted[i + n] <= 32768
+                ):
+                    n += 1
+                chunks.append(order[i : i + n])
+                i += n
+            h_kv = self.pool.shape[3]
+            head_dim = self.pool.shape[4]
+            groups = q.shape[1] // h_kv
+            for chunk in chunks:
                 ctx = meta.decode_ctx_lens[chunk]
                 max_blocks = -(-int(ctx.max()) // bs)
                 tables = meta.decode_block_tables[chunk, :max_blocks]
-                # [b, max_blocks, bs, H_kv, D] -> [b, H_kv, S, D]
-                kg = k_blocks[tables].flatten(1, 2).transpose(1, 2)
-                vg = v_blocks[tables].flatten(1, 2).transpose(1, 2)
-                qd = q[chunk].unsqueeze(2)  # [b, H, 1, D]
-                mask = (
-                    torch.arange(kg.shape[2], device=q.device)[None, :] < ctx[:, None]
-                )[:, None, None, :]
-                attn = F.scaled_dot_product_attention(qd, kg, vg, attn_mask=mask, enable_gqa=True)
-                out[chunk] = attn.squeeze(2)
+                kg = k_blocks[tables].flatten(1, 2)  # [b, S, H_kv, D]
+                vg = v_blocks[tables].flatten(1, 2)
+                # Manual grouped-GQA attention: SDPA with a bool mask falls
+                # back to the math kernel, which materializes fp32 scores AND
+                # KV expanded to all query heads — hundreds of MB at long
+                # contexts. The grouped einsum never expands KV; the score
+                # tensor is [b, H, S] (q_len is 1 for decode).
+                qg = q[chunk].view(len(chunk), h_kv, groups, head_dim)
+                scores = torch.einsum("bkgd,bskd->bkgs", qg.float(), kg.float())
+                scores *= head_dim ** -0.5
+                pad = torch.arange(kg.shape[1], device=q.device)[None, :] >= ctx[:, None]
+                scores.masked_fill_(pad[:, None, None, :], float("-inf"))
+                probs = scores.softmax(-1)
+                attn = torch.einsum("bkgs,bskd->bkgd", probs, vg.float())
+                out[chunk] = attn.reshape(len(chunk), -1, head_dim).to(out.dtype)
 
         for q_start, q_len, ctx_len, block_table in meta.prefill:
             kg = k_blocks[block_table].flatten(0, 1)[:ctx_len].transpose(0, 1)[None]  # [1,H_kv,C,D]
             vg = v_blocks[block_table].flatten(0, 1)[:ctx_len].transpose(0, 1)[None]
-            qp = q[q_start : q_start + q_len].permute(1, 0, 2)[None]  # [1, H, L, D]
-            mask = torch.ones(q_len, ctx_len, dtype=torch.bool, device=q.device).tril(
-                diagonal=ctx_len - q_len
-            )
-            attn = F.scaled_dot_product_attention(qp, kg, vg, attn_mask=mask, enable_gqa=True)
-            out[q_start : q_start + q_len] = attn[0].permute(1, 0, 2)
+            # slice queries so the math-fallback score tensor stays bounded
+            # (a full 512-token chunk against a long context is ~100MB fp32)
+            for qs in range(0, q_len, 128):
+                qe = min(qs + 128, q_len)
+                qp = q[q_start + qs : q_start + qe].permute(1, 0, 2)[None]  # [1, H, l, D]
+                mask = torch.ones(qe - qs, ctx_len, dtype=torch.bool, device=q.device).tril(
+                    diagonal=ctx_len - q_len + qs
+                )
+                attn = F.scaled_dot_product_attention(qp, kg, vg, attn_mask=mask, enable_gqa=True)
+                out[q_start + qs : q_start + qe] = attn[0].permute(1, 0, 2)
         return out
 
 

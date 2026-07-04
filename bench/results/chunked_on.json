@@ -1,0 +1,531 @@
+{
+  "concurrency": 128,
+  "num_requests": 128,
+  "successful_requests": 0,
+  "total_tokens": 0,
+  "total_wall_s": 851.1680128519656,
+  "aggregate_tok_s": 0.0,
+  "request_throughput_req_s": 0.0,
+  "ttft_p50_ms": null,
+  "ttft_p99_ms": null,
+  "inter_token_latency_p50_ms": null,
+  "inter_token_latency_p99_ms": null,
+  "e2e_p50_ms": null,
+  "e2e_p99_ms": null,
+  "failures": 128,
+  "requests": [],
+  "failure_details": [
+    {
+      "request_index": 0,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 1,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 2,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 3,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 4,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 5,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 6,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 7,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 8,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 9,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 10,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 11,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 12,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 13,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 14,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 15,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 16,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 17,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 18,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 19,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 20,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 21,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 22,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 23,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 24,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 25,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 26,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 27,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 28,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 29,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 30,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 31,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 32,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 33,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 34,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 35,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 36,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 37,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 38,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 39,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 40,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 41,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 42,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 43,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 44,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 45,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 46,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 47,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 48,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 49,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 50,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 51,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 52,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 53,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 54,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 55,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 56,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 57,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 58,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 59,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 60,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 61,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 62,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 63,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 64,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 65,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 66,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 67,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 68,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 69,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 70,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 71,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 72,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 73,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 74,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 75,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 76,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 77,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 78,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 79,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 80,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 81,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 82,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 83,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 84,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 85,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 86,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 87,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 88,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 89,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 90,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 91,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 92,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 93,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 94,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 95,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 96,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 97,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 98,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 99,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 100,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 101,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 102,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 103,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 104,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 105,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 106,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 107,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 108,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 109,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 110,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 111,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 112,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 113,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 114,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 115,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 116,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 117,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 118,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 119,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 120,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 121,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 122,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 123,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 124,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 125,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 126,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    },
+    {
+      "request_index": 127,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    }
+  ]
+}

@@ -68,7 +68,18 @@ class AsyncEngine:
             if not self.engine.has_work:
                 self._wakeup.clear()
                 await self._wakeup.wait()
-            outputs = await loop.run_in_executor(None, self.engine.step)
+            try:
+                outputs = await loop.run_in_executor(None, self.engine.step)
+            except Exception:
+                # a silent task death wedges every open SSE stream; fail loud
+                import traceback
+
+                traceback.print_exc()
+                for queue in self.queues.values():
+                    await queue.put(TokenEvent(0, "", True, "engine_error"))
+                self.queues.clear()
+                self.decoded.clear()
+                raise
             for out in outputs:
                 queue = self.queues.get(out.req_id)
                 if queue is None:
