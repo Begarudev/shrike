@@ -56,6 +56,27 @@ tokens each, `max_running=256`:
 draft acceptance and provably identical outputs; on non-repetitive text it
 degrades gracefully toward baseline.
 
+### Feature ablation (with vs without each technology)
+
+Offline toggles (`python -m bench.ablation`, same 64-prompt workload) and
+serving A/Bs (`bench.load_gen --long-every 8 --stagger-s 8`, 128 concurrent,
+every 8th request a ~1,600-token prompt):
+
+| Technology | Without | With | Verdict |
+|---|---|---|---|
+| KV cache (bs=1) | 43.0 tok/s | 68.1 tok/s | 1.6× (grows with length) |
+| Continuous batching | 68.1 tok/s | 818 tok/s | **12×** |
+| Prefix caching, short prompts | 842 tok/s | 807 tok/s | ~4% hashing overhead |
+| Prefix caching, shared long prefixes | — | 97% block reuse | TTFT 853ms → 96ms (CLI multi-turn) |
+| Chunked prefill (staggered long prompts) | TTFT p99 1370ms · ITL p99 99.5ms | TTFT p99 952ms · ITL p99 68.6ms | **−31% tail latency**, equal throughput |
+| N-gram speculation, general chat | 807 tok/s | 584 tok/s (27% acceptance) | −28%: drafts mostly rejected |
+| N-gram speculation, repetitive output | 26 tok/s | 140 tok/s (≥92% acceptance) | **5.4×** |
+
+The two-sided rows are the point: prefix caching costs a little on cache-cold
+short prompts and pays hugely on shared prefixes; speculation is a bet on
+output repetitiveness that loses on general chat — which is exactly why
+production engines make both toggleable per deployment.
+
 ![throughput ladder](bench/results/throughput_ladder.png)
 ![latency CDF](bench/results/latency_cdf.png)
 

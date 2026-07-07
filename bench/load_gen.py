@@ -58,7 +58,10 @@ async def _measure_request(
     semaphore: asyncio.Semaphore,
     request_index: int,
     prompt: str,
+    delay_s: float = 0.0,
 ) -> RequestMetrics:
+    if delay_s > 0:
+        await asyncio.sleep(delay_s)
     payload = {
         "prompt": prompt,
         "max_tokens": NEW_TOKENS,
@@ -145,6 +148,7 @@ async def _run_load_test(args: argparse.Namespace) -> tuple[dict[str, Any], int]
                     semaphore,
                     request_index,
                     _make_prompt(request_index, args.long_every, args.long_repeats),
+                    (request_index / max(1, args.num_requests - 1)) * args.stagger_s,
                 )
             )
             for request_index in range(args.num_requests)
@@ -241,6 +245,14 @@ def _parse_args() -> argparse.Namespace:
         help="filler paragraph repeats for long prompts (~40 tokens each)",
     )
     parser.add_argument("--out", default=None, help="results path override")
+    parser.add_argument(
+        "--stagger-s",
+        type=float,
+        default=0.0,
+        help="spread request starts over this many seconds (0 = single burst); "
+        "staggered long prompts show how chunked prefill protects in-flight "
+        "decode latency",
+    )
     return parser.parse_args()
 
 
