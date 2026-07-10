@@ -30,14 +30,51 @@ def _ansi(text: str, code: str, enabled: bool) -> str:
 def _print_help() -> None:
     print(
         """Commands:
-  /help           Show this help
-  /clear          Clear conversation history
-  /metrics        Show engine metrics (shared history is mostly prefix-cache hits)
-  /temp <float>   Set temperature; 0 uses greedy decoding
-  /max <int>      Set maximum new tokens
-  /spec on|off    Toggle prompt-lookup speculation
-  /system <text>  Set or replace the system message
-  /exit           Quit"""
+  /help                Show this help
+  /clear               Clear conversation history
+  /metrics             Show engine metrics (cache hits, speculation, blocks)
+  /reset               Zero the metrics counters (clean measurements)
+  /temp <float>        Set temperature; 0 uses greedy decoding
+  /max <int>           Set maximum new tokens
+  /spec on [ngram] [k] Enable prompt-lookup speculation (default ngram=2 k=4)
+  /spec off            Disable speculation
+  /cache on|off        Toggle prefix caching live
+  /budget <int>        Set scheduler token budget per step (chunked prefill)
+  /bench <n> [tokens]  Fire n concurrent requests (default 64 tokens each)
+                       and report aggregate throughput — watch batching scale
+  /system <text>       Set or replace the system message
+  /exit                Quit
+
+Experiments to try:
+  /bench 1  then  /bench 8  then  /bench 64   -> continuous batching scaling
+  /cache off, /bench 32, /reset, /cache on, /bench 32, /metrics -> prefix cache
+  /temp 0, /spec on, then: Repeat exactly five times: <sentence>  -> speculation
+  /budget 64 vs /budget 512 -> chunked prefill (TTFT in the status line)"""
+    )
+
+
+def _run_bench(engine: LLMEngine, count: int, tokens: int) -> None:
+    prompt = "Explain why paged memory management helps LLM serving."
+    sampling = SamplingParams(max_new_tokens=tokens, temperature=0.0, ignore_eos=True)
+    try:
+        for _ in range(count):
+            engine.add_request(prompt, sampling)
+    except ValueError as error:
+        print(f"[error] {error}")
+        return
+    started_at = time.perf_counter()
+    generated = 0
+    steps = 0
+    while engine.has_work:
+        generated += len(engine.step())
+        steps += 1
+    elapsed = time.perf_counter() - started_at
+    metrics = engine.metrics()
+    print(
+        f"{count} reqs x {tokens} tok -> {generated} tok in {elapsed:.2f}s "
+        f"= {generated / elapsed:.0f} tok/s aggregate "
+        f"({generated / elapsed / count:.1f} tok/s per request, {steps} steps, "
+        f"cache_hit={metrics['prefix_cache_hit_rate']})"
     )
 
 
@@ -190,14 +227,58 @@ def main() -> None:
                     max_new_tokens = value
                     print(f"Maximum new tokens set to {max_new_tokens}.")
             elif command == "/spec":
-                if argument == "on":
-                    engine.scheduler.spec_ngram = 2
-                    print("Speculation on; takes effect at /temp 0.")
-                elif argument == "off":
+                parts = argument.split()
+                if parts and parts[0] == "on":
+                    try:
+                        engine.scheduler.spec_ngram = int(parts[1]) if len(parts) > 1 else 2
+                        engine.scheduler.spec_k = int(parts[2]) if len(parts) > 2 else 4
+                    except ValueError:
+                        print("Usage: /spec on [ngram] [k]")
+                    else:
+                        print(
+                            f"Speculation on (ngram={engine.scheduler.spec_ngram}, "
+                            f"k={engine.scheduler.spec_k}); takes effect at /temp 0."
+                        )
+                elif parts and parts[0] == "off":
                     engine.scheduler.spec_ngram = 0
                     print("Speculation off.")
                 else:
-                    print("Usage: /spec on|off")
+                    print("Usage: /spec on [ngram] [k] | /spec off")
+            elif command == "/cache":
+                if argument in ("on", "off"):
+                    engine.block_manager.enable_prefix_caching = argument == "on"
+                    print(f"Prefix caching {argument}.")
+                else:
+                    print("Usage: /cache on|off")
+            elif command == "/budget":
+                try:
+                    value = int(argument)
+                    if value < 1:
+                        raise ValueError
+                except ValueError:
+                    print("Usage: /budget <positive int>")
+                else:
+                    engine.scheduler.max_tokens_per_step = value
+                    print(f"Scheduler token budget set to {value} per step.")
+            elif command == "/reset":
+                from garuda.engine.engine import EngineStats
+
+                engine.stats = EngineStats()
+                engine.block_manager.cache_hit_blocks = 0
+                engine.block_manager.cache_query_blocks = 0
+                engine.scheduler.num_preemptions = 0
+                print("Metrics counters reset.")
+            elif command == "/bench":
+                parts = argument.split()
+                try:
+                    count = int(parts[0])
+                    tokens = int(parts[1]) if len(parts) > 1 else 64
+                    if count < 1 or tokens < 1:
+                        raise ValueError
+                except (IndexError, ValueError):
+                    print("Usage: /bench <num_requests> [tokens_each]")
+                else:
+                    _run_bench(engine, count, tokens)
             elif command == "/system":
                 if not argument:
                     print("Usage: /system <text>")
