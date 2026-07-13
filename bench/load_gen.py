@@ -17,6 +17,7 @@ from bench.prompts import PROMPTS
 
 RESULTS_PATH = Path(__file__).resolve().parent / "results" / "load_test.json"
 NEW_TOKENS = 64
+DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 
 
 @dataclass
@@ -59,6 +60,8 @@ async def _measure_request(
     request_index: int,
     prompt: str,
     delay_s: float = 0.0,
+    api: str = "garuda",
+    model: str = DEFAULT_MODEL,
 ) -> RequestMetrics:
     if delay_s > 0:
         await asyncio.sleep(delay_s)
@@ -69,6 +72,8 @@ async def _measure_request(
         "stream": True,
         "ignore_eos": True,
     }
+    if api == "openai":
+        payload = {"model": model, **payload}
 
     async with semaphore:
         started_at = time.perf_counter()
@@ -94,7 +99,28 @@ async def _measure_request(
                     raise RuntimeError(f"invalid SSE JSON: {data!r}") from error
                 if not isinstance(event, dict):
                     raise RuntimeError("SSE data must decode to a JSON object")
-                if "text" in event:
+                if api == "openai":
+                    choices = event.get("choices")
+                    if not isinstance(choices, list) or not choices:
+                        raise RuntimeError("OpenAI SSE data must include a choice")
+                    choice = choices[0]
+                    if not isinstance(choice, dict):
+                        raise RuntimeError("OpenAI SSE choice must be a JSON object")
+                    text = choice.get("text")
+                    if not isinstance(text, str):
+                        raise RuntimeError("OpenAI SSE text value must be a string")
+                    if text:
+                        text_event_times.append(time.perf_counter())
+                    if "finish_reason" in choice:
+                        reason = choice["finish_reason"]
+                        if reason is not None and not isinstance(reason, str):
+                            raise RuntimeError(
+                                "OpenAI SSE finish_reason must be a string or null"
+                            )
+                        if reason is not None:
+                            finish_reason = reason
+                            saw_finish = True
+                elif "text" in event:
                     if not isinstance(event["text"], str):
                         raise RuntimeError("SSE text value must be a string")
                     text_event_times.append(time.perf_counter())
@@ -149,6 +175,8 @@ async def _run_load_test(args: argparse.Namespace) -> tuple[dict[str, Any], int]
                     request_index,
                     _make_prompt(request_index, args.long_every, args.long_repeats),
                     (request_index / max(1, args.num_requests - 1)) * args.stagger_s,
+                    args.api,
+                    args.model,
                 )
             )
             for request_index in range(args.num_requests)
@@ -231,6 +259,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--concurrency", type=_positive_int, default=512)
     parser.add_argument("--num-requests", type=_positive_int, default=512)
     parser.add_argument("--url", default="http://127.0.0.1:8000")
+    parser.add_argument("--api", choices=("garuda", "openai"), default="garuda")
+    parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument(
         "--long-every",
         type=int,
