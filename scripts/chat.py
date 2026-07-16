@@ -9,8 +9,8 @@ import time
 
 sys.path.insert(0, ".")
 
-from garuda.engine.engine import LLMEngine
-from garuda.engine.request import SamplingParams
+from shrike.engine.engine import LLMEngine
+from shrike.engine.request import SamplingParams
 
 
 def main():

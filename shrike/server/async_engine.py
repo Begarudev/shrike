@@ -15,8 +15,8 @@ import asyncio
 import time
 from dataclasses import dataclass
 
-from garuda.engine.engine import LLMEngine
-from garuda.engine.request import SamplingParams
+from shrike.engine.engine import LLMEngine
+from shrike.engine.request import SamplingParams
 
 
 @dataclass

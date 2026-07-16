@@ -16,7 +16,7 @@ PROMPT = "The key idea behind paged attention in LLM serving is"
 def setup():
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    from garuda.models.qwen import QwenForCausalLM
+    from shrike.models.qwen import QwenForCausalLM
 
     tok = AutoTokenizer.from_pretrained(MODEL_DIR)
     hf = AutoModelForCausalLM.from_pretrained(MODEL_DIR, torch_dtype="bfloat16").cuda().eval()
@@ -26,7 +26,7 @@ def setup():
 
 
 def test_prefill_logits_close(setup):
-    from garuda.models.qwen import NaiveKVBackend
+    from shrike.models.qwen import NaiveKVBackend
 
     hf, ours, ids = setup
     with torch.inference_mode():
@@ -49,7 +49,7 @@ def test_decode_path_teacher_forced(setup):
     argmax agreement everywhere EXCEPT positions where our top-2 gap is a
     near-tie (< 0.25), where either choice is numerically legitimate.
     """
-    from garuda.models.qwen import NaiveKVBackend
+    from shrike.models.qwen import NaiveKVBackend
 
     hf, ours, ids = setup
     with torch.inference_mode():

@@ -1,4 +1,4 @@
-# garuda
+# shrike
 
 An LLM inference engine built from scratch in pure PyTorch — no vLLM, no
 flash-attn, no custom CUDA. Loads Qwen2.5-0.5B-Instruct safetensors directly
@@ -25,7 +25,7 @@ per request, greedy, HF transformers bf16 as the baseline implementation):
 | 1 | HF, no KV cache, batch=1 (full-prefix recompute) | 43.0 | 1× |
 | 2 | HF, KV cache, batch=1 | 68.1 | 1.6× |
 | 3 | HF, static batching (64 reqs, padded to longest) | 831.0 useful (1477 raw) | 19.3× |
-| 4 | **garuda** (paged KV + continuous batching + chunked prefill) | **818.5** | **19.0×** |
+| 4 | **shrike** (paged KV + continuous batching + chunked prefill) | **818.5** | **19.0×** |
 
 Two honest observations, because benchmarks that only flatter are worthless:
 
@@ -107,6 +107,24 @@ HTTP (FastAPI, SSE)  ──►  AsyncEngine (asyncio bridge, per-request queues)
   from cache with zero recompute.
 - Preemption = discard-and-recompute (free victim's blocks, requeue).
 
+### Profiling (py-spy flame graphs)
+
+`bench/results/flame_offline.svg` (engine hot path, 3× offline workload) and
+`bench/results/flame_serving.svg` (server during four consecutive
+256-concurrent load runs — warm engine sustains ~1,700 tok/s). The measured
+Python-side costs, as fractions of total samples:
+
+| Hot path | ~% | What a production engine does instead |
+|---|---|---|
+| eager RoPE math (fp32 outer/cat/cos/sin per step) | 9% | fused into the attention kernel |
+| paged block gather + grouped-einsum decode attention | 10% | fused paged-attention CUDA kernel reads block tables in-kernel |
+| K/V scatter into the block pool (`index_copy_`) | 5% | fused into the same kernel |
+| per-layer Python op dispatch (24 layers × ~12 ops × every step) | large | CUDA graphs replay the whole decode step as one launch |
+
+This is the quantified answer to "why is vLLM faster than a pure-PyTorch
+engine": not the scheduling design (same algorithms), but kernel fusion and
+launch elimination.
+
 ### Honest limitations
 
 Attention gathers each sequence's KV blocks into a contiguous tensor before
@@ -122,7 +140,7 @@ CUDA graphs for decode steps, draft-model speculative decoding.
 uv venv .venv && uv pip install -p .venv/bin/python --torch-backend=auto torch && uv pip install -p .venv/bin/python -e .
 .venv/bin/python scripts/download_model.py
 .venv/bin/python -m pytest tests/ -x        # parity vs HF + paging correctness
-.venv/bin/python -m garuda.server.api       # serve on :8000
+.venv/bin/python -m shrike.server.api       # serve on :8000
 curl -N localhost:8000/v1/completions -H 'content-type: application/json' \
   -d '{"prompt": "Explain paged attention briefly.", "stream": true, "max_tokens": 128}'
 ```
@@ -132,6 +150,6 @@ Benchmarks: `python -m bench.baselines --rung 1|2|3`, `python -m bench.bench_eng
 
 ## Interactive CLI
 
-Run `python -m garuda.cli --model models_cache/qwen2.5-0.5b-instruct`.
+Run `python -m shrike.cli --model models_cache/qwen2.5-0.5b-instruct`.
 Type `/help` in the REPL to see the available commands.
 It streams multi-turn chat with sampling controls, metrics, prefix caching, and speculation.

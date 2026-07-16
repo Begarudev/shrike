@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from collections import deque
 
-from garuda.engine.request import Request
+from shrike.engine.request import Request
 
 
 class Block:

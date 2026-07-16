@@ -27,8 +27,8 @@ import torch
 
 from bench.prompts import PROMPTS
 from bench.workload import target_lengths
-from garuda.engine.engine import LLMEngine
-from garuda.engine.request import SamplingParams
+from shrike.engine.engine import LLMEngine
+from shrike.engine.request import SamplingParams
 
 MODEL_DIR = "models_cache/qwen2.5-0.5b-instruct"
 RESULTS_PATH = Path("bench/results/ablation.json")

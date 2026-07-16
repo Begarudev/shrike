@@ -21,8 +21,8 @@ from dataclasses import dataclass, field
 import torch
 import torch.nn.functional as F
 
-from garuda.engine.request import Request
-from garuda.models.qwen import QwenConfig, QwenForCausalLM
+from shrike.engine.request import Request
+from shrike.models.qwen import QwenConfig, QwenForCausalLM
 
 
 @dataclass

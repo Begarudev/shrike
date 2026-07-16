@@ -1,5 +1,5 @@
 [project]
-name = "garuda"
+name = "shrike"
 version = "0.1.0"
 description = "LLM inference engine from scratch: paged KV cache, continuous batching, chunked prefill, prefix caching, async SSE serving"
 requires-python = ">=3.11"

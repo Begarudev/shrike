@@ -1,7 +1,7 @@
 """CPU-only unit tests for the paged allocator + prefix cache + scheduler."""
 
-from garuda.engine.block_manager import BlockManager
-from garuda.engine.request import Request, SamplingParams, Status
+from shrike.engine.block_manager import BlockManager
+from shrike.engine.request import Request, SamplingParams, Status
 
 
 def make_req(tokens: list[int]) -> Request:
@@ -58,7 +58,7 @@ def test_prefix_cache_hit_and_eviction():
 
 
 def test_scheduler_chunked_prefill_and_preemption():
-    from garuda.engine.scheduler import Scheduler
+    from shrike.engine.scheduler import Scheduler
 
     bm = BlockManager(num_blocks=6, block_size=4, enable_prefix_caching=False)
     sched = Scheduler(bm, max_tokens_per_step=8, max_running=4)

@@ -12,12 +12,12 @@ from dataclasses import dataclass, field
 
 from transformers import AutoTokenizer
 
-from garuda.engine.block_manager import BlockManager
-from garuda.engine.model_runner import ModelRunner
-from garuda.engine.request import Request, SamplingParams, Status
-from garuda.engine.sampler import sample
-from garuda.engine.scheduler import Scheduler
-from garuda.models.qwen import QwenForCausalLM
+from shrike.engine.block_manager import BlockManager
+from shrike.engine.model_runner import ModelRunner
+from shrike.engine.request import Request, SamplingParams, Status
+from shrike.engine.sampler import sample
+from shrike.engine.scheduler import Scheduler
+from shrike.models.qwen import QwenForCausalLM
 
 
 @dataclass

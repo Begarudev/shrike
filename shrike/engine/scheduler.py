@@ -18,9 +18,9 @@ from __future__ import annotations
 
 from collections import deque
 
-from garuda.engine.block_manager import BlockManager
-from garuda.engine.request import Request, Status
-from garuda.engine.spec_ngram import propose
+from shrike.engine.block_manager import BlockManager
+from shrike.engine.request import Request, Status
+from shrike.engine.spec_ngram import propose
 
 
 class Scheduler:

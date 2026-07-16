@@ -1,4 +1,4 @@
-"""Interactive terminal chat for the in-process garuda engine."""
+"""Interactive terminal chat for the in-process shrike engine."""
 
 from __future__ import annotations
 
@@ -7,15 +7,15 @@ import readline
 import sys
 import time
 
-from garuda.engine.engine import LLMEngine
-from garuda.engine.request import SamplingParams
+from shrike.engine.engine import LLMEngine
+from shrike.engine.request import SamplingParams
 
 
 DEFAULT_MODEL = "models_cache/qwen2.5-0.5b-instruct"
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Chat with a local garuda model")
+    parser = argparse.ArgumentParser(description="Chat with a local shrike model")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--spec-ngram", type=int, default=0)
     return parser.parse_args()
@@ -167,7 +167,7 @@ def main() -> None:
     engine = LLMEngine(args.model, spec_ngram=args.spec_ngram)
     load_time = time.perf_counter() - load_started
     print(
-        f"garuda ready · {args.model} · {engine.block_manager.num_blocks} KV blocks "
+        f"shrike ready · {args.model} · {engine.block_manager.num_blocks} KV blocks "
         f"· loaded in {load_time:.1f}s"
     )
 
@@ -175,9 +175,9 @@ def main() -> None:
     temperature = 0.7
     max_new_tokens = 512
     prompt = (
-        "\001\033[1;36m\002garuda> \001\033[0m\002"
+        "\001\033[1;36m\002shrike> \001\033[0m\002"
         if use_color
-        else "garuda> "
+        else "shrike> "
     )
 
     while True:
@@ -261,7 +261,7 @@ def main() -> None:
                     engine.scheduler.max_tokens_per_step = value
                     print(f"Scheduler token budget set to {value} per step.")
             elif command == "/reset":
-                from garuda.engine.engine import EngineStats
+                from shrike.engine.engine import EngineStats
 
                 engine.stats = EngineStats()
                 engine.block_manager.cache_hit_blocks = 0

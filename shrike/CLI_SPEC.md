@@ -1,12 +1,12 @@
-# garuda/cli.py — interactive terminal chat REPL (Claude-Code-style)
+# shrike/cli.py — interactive terminal chat REPL (Claude-Code-style)
 
-Run as `python -m garuda.cli [--model models_cache/qwen2.5-0.5b-instruct] [--spec-ngram 0]`.
-Stdlib only (argparse, readline, sys, time) + the existing garuda package. No new deps.
+Run as `python -m shrike.cli [--model models_cache/qwen2.5-0.5b-instruct] [--spec-ngram 0]`.
+Stdlib only (argparse, readline, sys, time) + the existing shrike package. No new deps.
 
 ## Behavior
 - Loads `LLMEngine` in-process at startup (print a short banner while loading:
   model name, KV blocks, load time). Drives `engine.step()` directly.
-- REPL loop with a colored prompt `garuda> ` (ANSI, detect `sys.stdout.isatty()`;
+- REPL loop with a colored prompt `shrike> ` (ANSI, detect `sys.stdout.isatty()`;
   plain text when not a TTY). Use `readline` for line editing + in-session history.
 - Multi-turn chat: keep `messages` list of {role, content}. Each user turn:
   tokenize the FULL conversation with
@@ -45,6 +45,6 @@ one-sentence description). Keep the file under ~250 lines, plain and readable,
 matching the repo's code style (type hints, no over-abstraction).
 
 ## Acceptance
-- `printf 'hi\n/exit\n' | python -m garuda.cli` works end-to-end without a TTY (prints reply).
+- `printf 'hi\n/exit\n' | python -m shrike.cli` works end-to-end without a TTY (prints reply).
 - /clear, /metrics, /temp verified manually.
-- No changes outside garuda/cli.py and README.md.
+- No changes outside shrike/cli.py and README.md.

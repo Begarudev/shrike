@@ -17,7 +17,7 @@ RUNG_LABELS = [
     ("no_kv_cache", "No KV cache"),
     ("kv_cache", "KV cache"),
     ("static_batching", "Static batching"),
-    ("garuda_engine", "Garuda engine"),
+    ("shrike_engine", "Shrike engine"),
 ]
 
 
@@ -132,7 +132,7 @@ def _plot_latency(load_results: dict[str, Any]) -> None:
         )
     axis.set_xlabel("Latency (ms)")
     axis.set_ylabel("Cumulative fraction")
-    axis.set_title("Garuda HTTP load-test latency CDF")
+    axis.set_title("Shrike HTTP load-test latency CDF")
     axis.set_ylim(0.0, 1.01)
     figure.tight_layout()
     figure.savefig(LATENCY_PATH, dpi=150)

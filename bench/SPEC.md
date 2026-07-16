@@ -5,7 +5,7 @@ Target hardware: single RTX 3050 Laptop 4GB. Model: Qwen2.5-0.5B-Instruct at
 
 ## Fixed workload (same everywhere)
 - `bench/prompts.py`: `PROMPTS: list[str]` — 64 varied instruction prompts, 15–60 words each.
-- Greedy (temperature=0), exactly 64 new tokens per request (force length: garuda
+- Greedy (temperature=0), exactly 64 new tokens per request (force length: shrike
   `ignore_eos=True`; HF `min_new_tokens=64, max_new_tokens=64`).
 
 ## bench/baselines.py — the throughput ladder, rungs 1–3 (HF transformers, bf16, cuda)
@@ -22,19 +22,19 @@ CLI: `python -m bench.baselines --rung {1,2,3} [--num-prompts 16]`
   `{"rung_name": {"tokens": int, "seconds": float, "tok_s": float, "num_prompts": int}}`.
 - Load HF model once per invocation; `torch.cuda.synchronize()` around timers.
 
-## bench/bench_engine.py — rung 4 (garuda offline)
+## bench/bench_engine.py — rung 4 (shrike offline)
 CLI: `python -m bench.bench_engine [--num-prompts 64] [--no-prefix-caching]`
 ```python
-from garuda.engine.engine import LLMEngine
-from garuda.engine.request import SamplingParams
+from shrike.engine.engine import LLMEngine
+from shrike.engine.request import SamplingParams
 engine = LLMEngine("models_cache/qwen2.5-0.5b-instruct")  # kwargs: enable_prefix_caching: bool
 outs = engine.generate(PROMPTS, SamplingParams(max_new_tokens=64, temperature=0.0, ignore_eos=True))
 ```
-Time the `generate` call; write rung `"garuda_engine"` into the same results.json. Also print
-`engine.metrics()` and store it under `"garuda_metrics"`.
+Time the `generate` call; write rung `"shrike_engine"` into the same results.json. Also print
+`engine.metrics()` and store it under `"shrike_metrics"`.
 
 ## bench/load_gen.py — async load generator vs the HTTP server
-Server (started separately): `python -m garuda.server.api` on 127.0.0.1:8000.
+Server (started separately): `python -m shrike.server.api` on 127.0.0.1:8000.
 - POST /v1/completions JSON `{"prompt": str, "max_tokens": 64, "temperature": 0.0,
   "stream": true, "ignore_eos": true}` → SSE stream, lines `data: {"text": "..."}`,
   then `data: {"finish_reason": ...}`, then `data: [DONE]`.

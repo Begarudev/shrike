@@ -1,4 +1,4 @@
-"""Asynchronous burst load generator for the Garuda HTTP server."""
+"""Asynchronous burst load generator for the Shrike HTTP server."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ async def _measure_request(
     request_index: int,
     prompt: str,
     delay_s: float = 0.0,
-    api: str = "garuda",
+    api: str = "shrike",
     model: str = DEFAULT_MODEL,
 ) -> RequestMetrics:
     if delay_s > 0:
@@ -259,7 +259,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--concurrency", type=_positive_int, default=512)
     parser.add_argument("--num-requests", type=_positive_int, default=512)
     parser.add_argument("--url", default="http://127.0.0.1:8000")
-    parser.add_argument("--api", choices=("garuda", "openai"), default="garuda")
+    parser.add_argument("--api", choices=("shrike", "openai"), default="shrike")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument(
         "--long-every",

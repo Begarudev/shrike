@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 
-from garuda.engine.request import Request
+from shrike.engine.request import Request
 
 
 @torch.inference_mode()

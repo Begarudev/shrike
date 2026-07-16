@@ -1,4 +1,4 @@
-"""Offline throughput benchmark for the Garuda engine."""
+"""Offline throughput benchmark for the Shrike engine."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from typing import Any
 
 from bench.prompts import PROMPTS
 from bench.workload import target_lengths
-from garuda.engine.engine import LLMEngine
-from garuda.engine.request import SamplingParams
+from shrike.engine.engine import LLMEngine
+from shrike.engine.request import SamplingParams
 
 MODEL_DIR = "models_cache/qwen2.5-0.5b-instruct"
 RESULTS_PATH = Path("bench/results/results.json")
@@ -26,8 +26,8 @@ def _write_results(result: dict[str, int | float], metrics: dict[str, Any]) -> N
             raise ValueError(f"Expected a JSON object in {RESULTS_PATH}")
     else:
         results = {}
-    results["garuda_engine"] = result
-    results["garuda_metrics"] = metrics
+    results["shrike_engine"] = result
+    results["shrike_metrics"] = metrics
     with RESULTS_PATH.open("w", encoding="utf-8") as result_file:
         json.dump(results, result_file, indent=2)
         result_file.write("\n")
@@ -69,7 +69,7 @@ def main() -> None:
     _write_results(result, metrics)
 
     print(
-        f"garuda_engine: {tokens} tokens in {seconds:.3f}s "
+        f"shrike_engine: {tokens} tokens in {seconds:.3f}s "
         f"({tokens / seconds:.2f} tok/s)"
     )
     print(json.dumps(metrics, indent=2))

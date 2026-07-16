@@ -21,13 +21,13 @@ PROMPTS = [
 
 @pytest.fixture(scope="module")
 def engine():
-    from garuda.engine.engine import LLMEngine
+    from shrike.engine.engine import LLMEngine
 
     return LLMEngine(MODEL_DIR, max_tokens_per_step=48, gpu_mem_util=0.8)
 
 
 def naive_greedy(engine, token_ids: list[int], max_new: int) -> list[int]:
-    from garuda.models.qwen import NaiveKVBackend
+    from shrike.models.qwen import NaiveKVBackend
 
     backend = NaiveKVBackend(engine.model.cfg)
     n = len(token_ids)
@@ -56,8 +56,8 @@ def test_engine_matches_naive(engine):
     """
     import torch
 
-    from garuda.engine.request import SamplingParams
-    from garuda.models.qwen import NaiveKVBackend
+    from shrike.engine.request import SamplingParams
+    from shrike.models.qwen import NaiveKVBackend
 
     params = SamplingParams(max_new_tokens=48, temperature=0.0)
     tokenized = [

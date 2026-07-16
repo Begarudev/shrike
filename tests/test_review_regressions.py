@@ -2,9 +2,9 @@
 
 import pytest
 
-from garuda.engine.block_manager import BlockManager
-from garuda.engine.request import Request, SamplingParams, Status
-from garuda.engine.scheduler import Scheduler
+from shrike.engine.block_manager import BlockManager
+from shrike.engine.request import Request, SamplingParams, Status
+from shrike.engine.scheduler import Scheduler
 
 
 def make_req(tokens, max_new=8, temperature=0.0):
@@ -83,7 +83,7 @@ def test_oversized_and_empty_requests_rejected():
 
     if not torch.cuda.is_available():
         pytest.skip("needs the real engine")
-    from garuda.engine.engine import LLMEngine
+    from shrike.engine.engine import LLMEngine
 
     engine = LLMEngine("models_cache/qwen2.5-0.5b-instruct", gpu_mem_util=0.3)
     with pytest.raises(ValueError, match="empty"):

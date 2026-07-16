@@ -1,7 +1,7 @@
 """FastAPI serving layer: POST /v1/completions (SSE streaming or JSON),
 GET /health, GET /metrics.
 
-Run:  python -m garuda.server.api --model models_cache/qwen2.5-0.5b-instruct
+Run:  python -m shrike.server.api --model models_cache/qwen2.5-0.5b-instruct
 """
 
 from __future__ import annotations
@@ -15,9 +15,9 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from garuda.engine.engine import LLMEngine
-from garuda.engine.request import SamplingParams
-from garuda.server.async_engine import AsyncEngine
+from shrike.engine.engine import LLMEngine
+from shrike.engine.request import SamplingParams
+from shrike.server.async_engine import AsyncEngine
 
 _engine_config: dict = {}
 async_engine: AsyncEngine | None = None
