@@ -38,9 +38,17 @@ class BatchMeta:
 class PagedKVBackend:
     """KV pool: [num_layers, 2, num_slots, num_kv_heads, head_dim]."""
 
-    def __init__(self, cfg: QwenConfig, num_blocks: int, block_size: int, device: str = "cuda"):
+    def __init__(
+        self,
+        cfg: QwenConfig,
+        num_blocks: int,
+        block_size: int,
+        device: str = "cuda",
+        attention_backend: str = "einsum",  # "einsum" | "triton"
+    ):
         self.block_size = block_size
         self.num_blocks = num_blocks
+        self.attention_backend = attention_backend
         self.pool = torch.zeros(
             cfg.num_layers, 2, num_blocks * block_size, cfg.num_kv_heads, cfg.head_dim,
             dtype=cfg.dtype, device=device,
@@ -59,7 +67,14 @@ class PagedKVBackend:
         v_blocks = v_pool.view(self.num_blocks, bs, *v_pool.shape[1:])
 
         n_dec = meta.num_decode_seqs
-        if n_dec:
+        if n_dec and self.attention_backend == "triton":
+            from shrike.engine.triton_attention import triton_paged_decode
+
+            out[:n_dec] = triton_paged_decode(
+                q[:n_dec], k_pool, v_pool,
+                meta.decode_block_tables, meta.decode_ctx_lens, self.block_size,
+            )
+        elif n_dec:
             # Chunk the gather and sort by context length: gathering all
             # sequences padded to the global max context allocates ~GBs of
             # transients at high concurrency and stalls the CUDA allocator
@@ -123,7 +138,13 @@ class PagedKVBackend:
 
 
 class ModelRunner:
-    def __init__(self, model: QwenForCausalLM, block_size: int, gpu_mem_util: float = 0.85):
+    def __init__(
+        self,
+        model: QwenForCausalLM,
+        block_size: int,
+        gpu_mem_util: float = 0.85,
+        attention_backend: str = "einsum",
+    ):
         self.model = model
         self.cfg = model.cfg
         self.block_size = block_size
@@ -133,7 +154,9 @@ class ModelRunner:
             * self.pool_dtype_size()
         )
         self.num_blocks = int(free * gpu_mem_util) // block_bytes
-        self.backend = PagedKVBackend(self.cfg, self.num_blocks, block_size)
+        self.backend = PagedKVBackend(
+            self.cfg, self.num_blocks, block_size, attention_backend=attention_backend
+        )
 
     def pool_dtype_size(self) -> int:
         return torch.tensor([], dtype=self.cfg.dtype).element_size()

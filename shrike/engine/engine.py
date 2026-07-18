@@ -48,10 +48,11 @@ class LLMEngine:
         enable_prefix_caching: bool = True,
         spec_ngram: int = 0,
         spec_k: int = 4,
+        attention_backend: str = "einsum",
     ):
         self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
         self.model = QwenForCausalLM.load(model_dir)
-        self.runner = ModelRunner(self.model, block_size, gpu_mem_util)
+        self.runner = ModelRunner(self.model, block_size, gpu_mem_util, attention_backend)
         self.block_manager = BlockManager(
             self.runner.num_blocks, block_size, enable_prefix_caching
         )
