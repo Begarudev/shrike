@@ -103,12 +103,14 @@ def main():
     parser.add_argument("--max-tokens-per-step", type=int, default=512)
     parser.add_argument("--max-running", type=int, default=256)
     parser.add_argument("--no-prefix-caching", action="store_true")
+    parser.add_argument("--attention-backend", choices=["einsum", "triton"], default="einsum")
     args = parser.parse_args()
     _engine_config.update(
         model_dir=args.model,
         max_tokens_per_step=args.max_tokens_per_step,
         max_running=args.max_running,
         enable_prefix_caching=not args.no_prefix_caching,
+        attention_backend=args.attention_backend,
     )
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 

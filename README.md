@@ -125,6 +125,29 @@ This is the quantified answer to "why is vLLM faster than a pure-PyTorch
 engine": not the scheduling design (same algorithms), but kernel fusion and
 launch elimination.
 
+### Head-to-head vs vLLM (same GPU, same harness, same workload)
+
+vLLM 0.10.2 serving the identical Qwen2.5-0.5B bf16 snapshot on the same
+RTX 3050 4GB (`--enforce-eager`, protocol in `bench/compare_vllm.md`),
+driven by the identical load generator: 256 streaming requests × 64 forced
+tokens, burst-open. Zero failures on all three servers.
+
+| | aggregate tok/s | TTFT p99 | inter-token p99 |
+|---|---|---|---|
+| vLLM 0.10.2 | **3,445** | **893ms** | **94ms** |
+| shrike (Triton decode kernel) | 1,739 | 5,057ms | 778ms |
+| shrike (einsum decode) | 1,524 | 3,819ms | 780ms |
+
+**The gap is 2.0× — and the flame graphs above account for it.** vLLM fuses
+RoPE/RMSNorm/attention into CUDA kernels, runs its scheduler in optimized
+code, and batches sampling natively; shrike pays Python dispatch on all of
+it. Writing the Triton paged-attention decode kernel closed part of the
+distance (+14% here, +27% offline) and demonstrates the path: each remaining
+Python hot spot is a fusion candidate. Losing to a 50-contributor production
+engine by 2× with ~1,500 lines of readable Python is the trade this project
+chose on purpose — the scheduling algorithms are the same; the kernels are
+the moat.
+
 ### Honest limitations
 
 Attention gathers each sequence's KV blocks into a contiguous tensor before
