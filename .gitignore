@@ -4,3 +4,4 @@ __pycache__/
 models_cache/
 .pytest_cache/
 bench/results/load_test.json
+/RESUME.md
